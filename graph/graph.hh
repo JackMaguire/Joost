@@ -2,6 +2,9 @@
 #include <cassert>
 #include <map>
 
+//Saving me refactoring time later
+#define debug_assert assert
+
 //Types//
 using node_id_int = int;
 ////////
@@ -18,14 +21,38 @@ public:
     if( first_node_->node_id() == i ){
       return second_node_->node_id();
     } else {
-      assert( second_node_->node_id() == i );
+      debug_assert( second_node_->node_id() == i );
       return first_node_->node_id();
     }
+  }
+
+  node_id_int first_node_id() const {
+    return first_node_->node_id();
+  }
+
+  NodeBase * first_node() {
+    return first_node_;
+  }
+
+  NodeBase const * first_node() const {
+    return first_node_;
   }
 
   void
   set_first_node( NodeBase * node ){
     first_node_ = node;
+  }
+
+  node_id_int second_node_id() const {
+    return second_node_->node_id();
+  }
+
+  NodeBase * second_node() {
+    return second_node_;
+  }
+
+  NodeBase const * second_node() const {
+    return second_node_;
   }
 
   void
@@ -84,6 +111,12 @@ public:
     edge_map_[ other_node_id ] = ptr;
   }
 
+  void
+  deregister_edge( EdgeBase const * ptr ){
+    node_id_int const other_node_id = ptr->get_other_node_id( node_id() );
+    edge_map_.erase( other_node_id );
+  }
+
 private:
   MapType< node_id_int, EdgeBase * > edge_map_;
 }
@@ -114,6 +147,15 @@ public:
   void
   register_new_edge( node_id_int other_node_id, EdgeBase * ptr ){
     edges_.push_back( ptr );
+  }
+
+  void
+  deregister_edge( EdgeBase const * ptr ){
+    auto && pred = [=]( EdgeBase * edge ) -> bool {
+      return edge->get_other_node_id( node_id() ) == other_node_id;
+    };
+    auto iter = std::find_if( edges_.begin(), edges_.end(), pred );    
+    edges_.erase( iter );
   }
 
 private:
@@ -159,7 +201,7 @@ public:
 
     {
       auto first_node_iter = nodes_[ pair.first ];
-      assert( first_node_iter != nodes_.end() );
+      debug_assert( first_node_iter != nodes_.end() );
       NodeType * first_node = * first_node_iter;
       ptr->set_first_node( first_node );
       first_node->register_new_edge( pair.second, ptr );
@@ -167,14 +209,26 @@ public:
 
     {
       auto second_node_iter = nodes_[ pair.second ];
-      assert( second_node_iter != nodes_.end() );
+      debug_assert( second_node_iter != nodes_.end() );
       NodeType * second_node = * second_node_iter;
       ptr->set_second_node( second_node );
       second_node->register_new_edge( pair.first, ptr );
     }
   }
 
+  void
+  remove_edge( EdgeType * edge ){
+    debug_assert( edge != nullptr );
+    nodes_[ edge->first_node_id() ]->deregister_edge( edge );
+    nodes_[ edge->second_node_id() ]->deregister_edge( edge );
+
+    auto iter = edges_.find( std::make_pair( edge->first_node_id(), edge->second_node_id() ) );
+    debug_assert( iter != edges_.end() );
+    edges_.erase( iter );
+  }
+
 private:
+  //How can we template this to be vector-indexed? Special SFINAE?
   MapType< node_id_int, NodePtr > nodes_;
   MapType< NodeIDPair, EdgePtr > edges_;
 };

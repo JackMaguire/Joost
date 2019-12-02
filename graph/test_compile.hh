@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include <vector>
+#include <list>
 #include <map>
 #include <unordered_map>
 
@@ -17,9 +18,9 @@ run(){
 
 int main(){
 
-  //run< Graph, EdgeBase, MapNodeBase< std::map > >();
-  //run< Graph, EdgeBase, MapNodeBase< std::unordered_map > >();
-
   run< Graph, EdgeBase, FlatNodeBase< std::vector > >();
+  run< Graph, EdgeBase, FlatNodeBase< std::list > >();
+  run< Graph, EdgeBase, MapNodeBase< std::map > >();
+  run< Graph, EdgeBase, MapNodeBase< std::unordered_map > >();
 
 }

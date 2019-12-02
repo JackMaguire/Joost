@@ -178,6 +178,8 @@ using NodePtr = std::unique_ptr< NodeType >;
 using EdgePtr = std::unique_ptr< EdgeType >;
 using NodeIDPair = std::pair< node_id_int, node_id_int >;
 
+using This = Graph< NodeType, EdgeType >;
+
 public:
   Graph(
     int num_nodes,
@@ -246,9 +248,40 @@ public:
   }
 
 private:
-  //How can we template this to be vector-indexed? Special SFINAE?
-  std::map< node_id_int, NodePtr > nodes_;
-  std::map< NodeIDPair, EdgePtr > edges_;
+  using NodeMapType = std::map< node_id_int, NodePtr >;
+  NodeMapType nodes_;
+
+  using EdgeMapType = std::map< NodeIDPair, EdgePtr >;
+  EdgeMapType edges_;
+
+//Edge iteration
+public:
+  class EdgeIterator {
+  public:
+    EdgeIterator( This * const graph ) :
+      graph_( graph )
+    {
+      current_node_ = graph_->nodes_.begin();
+      if( ! graph_->nodes_.empty() ){
+	current_edge_ = current_node_->second->upper_edge_begin();;
+      } else {
+	current_edge_ = NodeType::upper_edge_iterator::end();
+      }
+    }
+
+    //double-check this is prefix
+    operator ++(){
+      
+    }
+
+  private:
+    This * graph_;
+    NodeMapType::iterator current_node_;
+    NodeType::upper_edge_iterator current_edge_;
+    
+  };
+  friend class EdgeIterator;
+
 };
 
 } //graph

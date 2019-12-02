@@ -12,9 +12,9 @@ namespace graph {
 using node_id_int = int;
 ////////
 
-class NodeBase;
-class EdgeBase;
-class GraphBase;
+//class NodeBase;
+//class EdgeBase;
+//class GraphBase;
 
 class NodeBase {
 public:
@@ -130,10 +130,37 @@ private:
 public: //Edge iteration
   class UpperEdgeIterator {
   public:
-    UpperEdgeIterator( NodeType * node ):
+    UpperEdgeIterator( NodeType * const node ):
       node_( node )
-    {}
+    {
+      iter_ = node_->edge_map_.begin();
+      advance_as_needed();
+    }
+
+    UpperEdgeIterator & operator ++(){
+      ++iter_;
+      advance_as_needed();
+      return *this;
+    }
+
+    EdgeType & operator * () {
+      return * iter_->second;
+    }
+
+    EdgeType const & operator * () const {
+      return * iter_->second;
+    }
+
   private:
+    void
+    advance_as_needed(){
+      while( iter_ != node_->edge_map_.end() && 
+	iter_.second->get_other_node_id( node_->node_id() ) < node_->node_id()
+      ){
+	++iter_;
+      }
+    }
+
     NodeType * node_;
     EdgeMapType::iterator iter_;
   };
@@ -142,6 +169,9 @@ public: //Edge iteration
 
 template< template< typename T > class ContainerType >
 class FlatNodeBase : public NodeBase {
+
+using NodeType = FlatNodeBase< ContainerType >;
+
 public:
   FlatNodeBase( node_id_int id ) :
     NodeBase( id )
@@ -179,7 +209,48 @@ public:
   }
 
 private:
-  ContainerType< EdgeBase * > edges_;
+  using EdgeContainerType = ContainerType< EdgeBase * >;
+  EdgeContainerType edges_;
+
+public: //Edge iteration
+  class UpperEdgeIterator {
+  public:
+    UpperEdgeIterator( NodeType * const node ):
+      node_( node )
+    {
+      iter_ = node_->edges_.begin();
+      advance_as_needed();
+    }
+
+    UpperEdgeIterator & operator ++(){
+      ++iter_;
+      advance_as_needed();
+      return *this;
+    }
+
+    EdgeType & operator * () {
+      return * iter_;
+    }
+
+    EdgeType const & operator * () const {
+      return * iter_;
+    }
+
+  private:
+    void
+    advance_as_needed(){
+      while( iter_ != node_->edges_.end() && 
+	iter_->get_other_node_id( node_->node_id() ) < node_->node_id()
+      ){
+	++iter_;
+      }
+    }
+
+    NodeType * node_;
+    EdgeContainerType::iterator iter_;
+  };
+  friend class UpperEdgeIterator;
+
 };
 
 
@@ -286,6 +357,7 @@ public:
     }
 
     //double-check this is prefix
+    EdgeIterator &
     operator ++(){
       if( current_edge_ == NodeType::UpperEdgeIterator::end() ){
 	//then we are already at the end, do nothing
@@ -300,6 +372,16 @@ public:
 	  current_edge_ = current_node_->second->upper_edge_begin();
 	}//else we are done
       }
+
+      return *this;
+    }
+
+    EdgeType & operator * (){
+      return * current_edge_;
+    }
+
+    EdgeType & operator * () const {
+      return * current_edge_;
     }
 
   private:

@@ -156,7 +156,7 @@ public:
   deregister_edge( EdgeBase const * ptr ){
     auto && pred = [=]( EdgeBase * edge ) -> bool {
       //preobably better check for equality here
-      return edge->get_other_node_id( node_id() ) == ptr->node_id();
+      return edge->get_other_node_id( node_id() ) == ptr->get_other_node_id( node_id() );
     };
     auto iter = std::find_if( edges_.begin(), edges_.end(), pred );    
     edges_.erase( iter );
@@ -170,8 +170,8 @@ private:
 //The graph owns all nodes and edges
 template<
   typename NodeType,
-  typename EdgeType,
-  typename MapType = std::map
+  typename EdgeType
+  //template< typename K, typename V > class MapType
 >
 class Graph {
 using NodePtr = std::unique_ptr< NodeType >;
@@ -247,8 +247,8 @@ public:
 
 private:
   //How can we template this to be vector-indexed? Special SFINAE?
-  MapType< node_id_int, NodePtr > nodes_;
-  MapType< NodeIDPair, EdgePtr > edges_;
+  std::map< node_id_int, NodePtr > nodes_;
+  std::map< NodeIDPair, EdgePtr > edges_;
 };
 
 } //graph

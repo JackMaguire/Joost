@@ -412,6 +412,16 @@ public:
     }
   }
 
+  EdgeType const *
+  find_edge( node_id_int node_id1, node_id_int node_id2 ) const {
+    if( node_id1 > node_id2 ) return find_edge( node_id2, node_id1 );
+    auto iter = edges_.find( std::make_pair( node_id1, node_id2 ) );
+    if( iter == edges_.end() ){
+      return nullptr;
+    } else {
+      return iter;
+    }
+  }
 
 private:
   using NodeMapType = std::map< node_id_int, NodePtr >;

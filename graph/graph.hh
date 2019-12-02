@@ -263,7 +263,7 @@ public:
     {
       current_node_ = graph_->nodes_.begin();
       if( ! graph_->nodes_.empty() ){
-	current_edge_ = current_node_->second->upper_edge_begin();;
+	current_edge_ = current_node_->second->upper_edge_begin();
       } else {
 	current_edge_ = NodeType::upper_edge_iterator::end();
       }
@@ -271,8 +271,22 @@ public:
 
     //double-check this is prefix
     operator ++(){
-      
+      if( current_edge_ == NodeType::upper_edge_iterator::end() ){
+	//then we are already at the end, do nothing
+      }
+
+      ++current_edge_;
+
+      if( current_edge_ == NodeType::upper_edge_iterator::end() ){
+	//then we need to move on to the next node
+	++current_node_;
+	if( current_node_ != graph_->nodes_.end() ){
+	  current_edge_ = current_node_->second->upper_edge_begin();
+	}//else we are done
+      }
     }
+
+    
 
   private:
     This * graph_;

@@ -227,6 +227,11 @@ public:
     edges_.erase( iter );
   }
 
+  void add_node( node_id_int node_id ){
+    debug_assert( nodes_.at( node_id ) == nodes_.end() );
+    nodes_[ index ] = std::make_unique< NodeType >( node_id );
+  }
+
 private:
   //How can we template this to be vector-indexed? Special SFINAE?
   MapType< node_id_int, NodePtr > nodes_;

@@ -88,6 +88,9 @@ private:
 //TODO map-based concept
 template< template< typename Key, typename Value > class MapType = std::map >
 class MapNodeBase : public NodeBase {
+
+using NodeType = MapNodeBase< MapType >;
+
 public:
   MapNodeBase( node_id_int id ) :
     NodeBase( id )
@@ -121,7 +124,20 @@ public:
   }
 
 private:
-  MapType< node_id_int, EdgeBase * > edge_map_;
+  using EdgeMapType = MapType< node_id_int, EdgeBase * >;
+  EdgeMapType edge_map_;
+
+public: //Edge iteration
+  class UpperEdgeIterator {
+  public:
+    UpperEdgeIterator( NodeType * node ):
+      node_( node )
+    {}
+  private:
+    NodeType * node_;
+    EdgeMapType::iterator iter_;
+  };
+  friend class UpperEdgeIterator;
 };
 
 template< template< typename T > class ContainerType >
@@ -178,7 +194,7 @@ using NodePtr = std::unique_ptr< NodeType >;
 using EdgePtr = std::unique_ptr< EdgeType >;
 using NodeIDPair = std::pair< node_id_int, node_id_int >;
 
-using This = Graph< NodeType, EdgeType >;
+using GraphType = Graph< NodeType, EdgeType >;
 
 public:
   Graph(
@@ -258,26 +274,26 @@ private:
 public:
   class EdgeIterator {
   public:
-    EdgeIterator( This * const graph ) :
+    EdgeIterator( GraphType * const graph ) :
       graph_( graph )
     {
       current_node_ = graph_->nodes_.begin();
       if( ! graph_->nodes_.empty() ){
 	current_edge_ = current_node_->second->upper_edge_begin();
       } else {
-	current_edge_ = NodeType::upper_edge_iterator::end();
+	current_edge_ = NodeType::UpperEdgeIterator::end();
       }
     }
 
     //double-check this is prefix
     operator ++(){
-      if( current_edge_ == NodeType::upper_edge_iterator::end() ){
+      if( current_edge_ == NodeType::UpperEdgeIterator::end() ){
 	//then we are already at the end, do nothing
       }
 
       ++current_edge_;
 
-      if( current_edge_ == NodeType::upper_edge_iterator::end() ){
+      if( current_edge_ == NodeType::UpperEdgeIterator::end() ){
 	//then we need to move on to the next node
 	++current_node_;
 	if( current_node_ != graph_->nodes_.end() ){
@@ -286,12 +302,10 @@ public:
       }
     }
 
-    
-
   private:
-    This * graph_;
+    GraphType * graph_;
     NodeMapType::iterator current_node_;
-    NodeType::upper_edge_iterator current_edge_;
+    NodeType::UpperEdgeIterator current_edge_;
     
   };
   friend class EdgeIterator;

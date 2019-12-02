@@ -15,17 +15,27 @@ class EdgeBase {
 public:
   node_id_int
   get_other_node_id( node_id_int i ) const {
-    if( first_node->node_id() == i ){
-      return second_node->node_id();
+    if( first_node_->node_id() == i ){
+      return second_node_->node_id();
     } else {
-      assert( second_node->node_id() == i );
-      return first_node->node_id();
+      assert( second_node_->node_id() == i );
+      return first_node_->node_id();
     }
   }
 
+  void
+  set_first_node( NodeBase * node ){
+    first_node_ = node;
+  }
+
+  void
+  set_second_node( NodeBase * node ){
+    second_node_ = node;
+  }
+
 private:
-  NodeBase * first_node;
-  NodeBase * second_node;
+  NodeBase * first_node_;
+  NodeBase * second_node_;
 };
 
 class NodeBase {
@@ -53,17 +63,25 @@ public:
     NodeBase( id )
   {}
 
-  template< typename EdgeType >
-  EdgeType *
-  get_edge( node_id_int other_node_id ){
-    //EdgeBase * const ptr = 
+  EdgeBase *
+  get_edgebase( node_id_int other_node_id ){
     auto iter = edge_map_.find( other_node_id );
     if( iter == edge_map_.end() ){
       return nullptr;
     }
     EdgeBase * const ptr = * iter;
-    EdgeType * const ptr2 = std::dynamic_pointer_cast< EdgeType >( ptr );
-    return ptr2;
+    return ptr;
+  }
+
+  template< typename EdgeType >
+  EdgeType *
+  get_edge( node_id_int other_node_id ){
+    return std::dynamic_pointer_cast< EdgeType >( get_edgebase( other_node_id ) );
+  }
+
+  void
+  register_new_edge( node_id_int other_node_id, EdgeBase * ptr ){
+    edge_map_[ other_node_id ] = ptr;
   }
 
 private:
@@ -77,16 +95,25 @@ public:
     NodeBase( id )
   {}
 
-  template< typename EdgeType >
-  EdgeType *
-  get_edge( node_id_int other_node_id ){
+  EdgeBase *
+  get_edgebase( node_id_int other_node_id ){
     auto && pred = [=]( EdgeBase * edge ) -> bool {
       return edge->get_other_node_id( node_id() ) == other_node_id;
     };
     auto iter = std::find_if( edges_.begin(), edges_.end(), pred );
     EdgeBase * const ptr = * iter;
-    EdgeType * const ptr2 = std::dynamic_pointer_cast< EdgeType >( ptr );
-    return ptr2;
+    return ptr;
+  }
+
+  template< typename EdgeType >
+  EdgeType *
+  get_edge( node_id_int other_node_id ){
+    return std::dynamic_pointer_cast< EdgeType >( get_edgebase( other_node_id ) );
+  }
+
+  void
+  register_new_edge( node_id_int other_node_id, EdgeBase * ptr ){
+    edges_.push_back( ptr );
   }
 
 private:
@@ -111,7 +138,39 @@ public:
   ){
     for( int i = 0; i < num_nodes; ++i ){
       node_id_int const index = first_node_index + i;
-      nodes_[ index ] = std::make_unique( index );
+      nodes_[ index ] = std::make_unique< NodeType >( index );
+    }
+  }
+
+  EdgeType *
+  add_edge( node_id_int const node1, node_id_int const node2 ){
+    NodeIDPair pair;
+    if( node1 < node2 ){
+      pair.first = node1;
+      pair.second = node2;
+    } else {
+      pair.first = node2;
+      pair.second = node1;
+    }
+    
+    auto iter = edges_[ pair ];
+    EdgePtr ptr = * iter;
+    ptr = std::make_unique< EdgeType >();
+
+    {
+      auto first_node_iter = nodes_[ pair.first ];
+      assert( first_node_iter != nodes_.end() );
+      NodeType * first_node = * first_node_iter;
+      ptr->set_first_node( first_node );
+      first_node->register_new_edge( pair.second, ptr );
+    }
+
+    {
+      auto second_node_iter = nodes_[ pair.second ];
+      assert( second_node_iter != nodes_.end() );
+      NodeType * second_node = * second_node_iter;
+      ptr->set_second_node( second_node );
+      second_node->register_new_edge( pair.first, ptr );
     }
   }
 

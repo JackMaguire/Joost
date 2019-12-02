@@ -151,6 +151,21 @@ public: //Edge iteration
       return * iter_->second;
     }
 
+    static UpperEdgeIterator end() {
+      UpperEdgeIterator iter( true );
+      return iter;
+    }
+
+    bool operator == ( UpperEdgeIterator const & other ){
+      //1. check for end
+      if( other.node_ == nullptr ){
+	return node_ == nullptr;
+      }
+
+      //2. check for equality
+      return node_ == other.node_ && iter_ == other.iter_;
+    }
+
   private:
     void
     advance_as_needed(){
@@ -159,10 +174,22 @@ public: //Edge iteration
       ){
 	++iter_;
       }
+
+      if( iter_ == node_->edge_map_.end() ){
+	node_ = nullptr;
+	iter_ = 0;
+      }
     }
 
     NodeType * node_;
     EdgeMapType::iterator iter_;
+
+    //This ctor is only used to contruct a dummy end()
+    //Using bool so I don't break the rule of zero
+    UpperEdgeIterator( bool ) :
+      node_( nullptr ),
+      iter_( 0 )
+    {}
   };
   friend class UpperEdgeIterator;
 };
@@ -384,14 +411,44 @@ public:
       return * current_edge_;
     }
 
+    static EdgeIterator end() {
+      EdgeIterator iter( true );
+      return iter;
+    }
+
+    bool operator == ( EdgeIterator const & other ) const {
+      //1. check for end
+      if( other.current_edge_ == NodeType::UpperEdgeIterator::end() ){
+	return current_edge_ == NodeType::UpperEdgeIterator::end();
+      }
+
+      //2. check for equality
+      return graph_ == other.graph_ &&
+	current_node_ = other.current_node_ &&
+	current_edge_ = other.current_edge_;
+    }
+
   private:
     GraphType * graph_;
     NodeMapType::iterator current_node_;
     NodeType::UpperEdgeIterator current_edge_;
     
+    //This ctor is only used to contruct a dummy end()
+    //Using bool so I don't break the rule of zero
+    EdgeIterator( bool ) :
+      current_node_ = NodeType::UpperEdgeIterator::end();
+    {}
+
   };
   friend class EdgeIterator;
 
+  EdgeIterator edge_list_begin() {
+    return EdgeIterator( *this );
+  }
+
+  EdgeIterator edge_list_end() {
+    return EdgeIterator::end();
+  }
 };
 
 } //graph

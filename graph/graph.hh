@@ -1,5 +1,6 @@
 #include <memory>
 #include <cassert>
+#include <map>
 
 //Types//
 using node_id_int = int;
@@ -8,8 +9,6 @@ using node_id_int = int;
 class NodeBase;
 class EdgeBase;
 class GraphBase;
-
-
 
 //template< typename NodeType >
 class EdgeBase {
@@ -31,6 +30,10 @@ private:
 
 class NodeBase {
 public:
+  NodeBase( node_id_int id ) :
+    node_id_ = id
+  {}
+
   void set_node_id( node_id_int setting ){
     node_id_ = setting;
   }
@@ -46,6 +49,10 @@ private:
 template< typename MapType >
 class MapNodeBase : public NodeBase {
 public:
+  MapNodeBase( node_id_int id ) :
+    NodeBase( id )
+  {}
+
   template< typename EdgeType >
   EdgeType *
   get_edge( node_id_int other_node_id ){
@@ -66,6 +73,10 @@ private:
 template< typename ContainerType >
 class FlatNodeBase : public NodeBase {
 public:
+  FlatNodeBase( node_id_int id ) :
+    NodeBase( id )
+  {}
+
   template< typename EdgeType >
   EdgeType *
   get_edge( node_id_int other_node_id ){
@@ -83,6 +94,28 @@ private:
 }
 
 //The graph owns all nodes and edges
+template<
+  typename NodeType,
+  typename EdgeType,
+  typename MapType = std::map
+>
 class GraphBase {
+using NodePtr = std::unique_ptr< NodeType >;
+using EdgePtr = std::unique_ptr< EdgeType >;
+using NodeIDPair = std::pair< node_id_int, node_id_int >;
 
+public:
+  GraphBase(
+    int num_nodes,
+    node_id_int first_node_index = 0
+  ){
+    for( int i = 0; i < num_nodes; ++i ){
+      node_id_int const index = first_node_index + i;
+      nodes_[ index ] = std::make_unique( index );
+    }
+  }
+
+private:
+  MapType< node_id_int, NodePtr > nodes_;
+  MapType< NodeIDPair, EdgePtr > edges_;
 };

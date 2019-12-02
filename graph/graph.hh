@@ -106,9 +106,25 @@ public:
     return ptr;
   }
 
+  EdgeBase const *
+  get_edgebase( node_id_int other_node_id ) const {
+    auto iter = edge_map_.find( other_node_id );
+    if( iter == edge_map_.end() ){
+      return nullptr;
+    }
+    EdgeBase * const ptr = * iter;
+    return ptr;
+  }
+
   template< typename EdgeType >
   EdgeType *
   get_edge( node_id_int other_node_id ){
+    return std::dynamic_pointer_cast< EdgeType >( get_edgebase( other_node_id ) );
+  }
+
+  template< typename EdgeType >
+  EdgeType const *
+  get_edge( node_id_int other_node_id ) const {
     return std::dynamic_pointer_cast< EdgeType >( get_edgebase( other_node_id ) );
   }
 
@@ -214,9 +230,25 @@ public:
     return ptr;
   }
 
+  EdgeBase const *
+  get_edgebase( node_id_int other_node_id ) const {
+    auto && pred = [=]( EdgeBase * edge ) -> bool {
+      return edge->get_other_node_id( node_id() ) == other_node_id;
+    };
+    auto iter = std::find_if( edges_.begin(), edges_.end(), pred );
+    EdgeBase * const ptr = * iter;
+    return ptr;
+  }
+
   template< typename EdgeType >
   EdgeType *
   get_edge( node_id_int other_node_id ){
+    return std::dynamic_pointer_cast< EdgeType >( get_edgebase( other_node_id ) );
+  }
+
+  template< typename EdgeType >
+  EdgeType const *
+  get_edge( node_id_int other_node_id ) const {
     return std::dynamic_pointer_cast< EdgeType >( get_edgebase( other_node_id ) );
   }
 
@@ -360,6 +392,26 @@ public:
   unsigned int num_edges() const {
     return edges_.size();
   }
+
+  NodeType * get_node( node_id_int node_id ) {
+    return nodes_.at( node_id );
+  }
+
+  NodeType const * get_node( node_id_int node_id ) const {
+    return nodes_.at( node_id );
+  }
+
+  EdgeType *
+  find_edge( node_id_int node_id1, node_id_int node_id2 ){
+    if( node_id1 > node_id2 ) return find_edge( node_id2, node_id1 );
+    auto iter = edges_.find( std::make_pair( node_id1, node_id2 ) );
+    if( iter == edges_.end() ){
+      return nullptr;
+    } else {
+      return iter;
+    }
+  }
+
 
 private:
   using NodeMapType = std::map< node_id_int, NodePtr >;

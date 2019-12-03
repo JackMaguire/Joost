@@ -260,7 +260,7 @@ public:
   void
   deregister_edge( EdgeBase const * ptr ){
     auto && pred = [=]( EdgeBase * edge ) -> bool {
-      //preobably better check for equality here
+      //there's probably a better check for pointer equality here
       return edge->get_other_node_id( node_id() ) == ptr->get_other_node_id( node_id() );
     };
     auto iter = std::find_if( edges_.begin(), edges_.end(), pred );    
@@ -404,6 +404,7 @@ public:
   EdgeType *
   find_edge( node_id_int node_id1, node_id_int node_id2 ){
     if( node_id1 > node_id2 ) return find_edge( node_id2, node_id1 );
+
     auto iter = edges_.find( std::make_pair( node_id1, node_id2 ) );
     if( iter == edges_.end() ){
       return nullptr;
@@ -415,6 +416,7 @@ public:
   EdgeType const *
   find_edge( node_id_int node_id1, node_id_int node_id2 ) const {
     if( node_id1 > node_id2 ) return find_edge( node_id2, node_id1 );
+
     auto iter = edges_.find( std::make_pair( node_id1, node_id2 ) );
     if( iter == edges_.end() ){
       return nullptr;

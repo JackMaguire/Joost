@@ -426,6 +426,7 @@ public:
   }
 
 private:
+  //TODO template parameter?
   using NodeMapType = std::map< node_id_int, NodePtr >;
   NodeMapType nodes_;
 
@@ -514,6 +515,7 @@ public:
     return EdgeIterator::end();
   }
 };
+
 
 } //graph
 } //joost

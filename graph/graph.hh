@@ -347,7 +347,7 @@ public:
     }
     
     auto iter = edges_[ pair ];
-    EdgePtr ptr = * iter;
+    EdgePtr & ptr = * iter;
     ptr = std::make_shared< EdgeType >();
 
     {

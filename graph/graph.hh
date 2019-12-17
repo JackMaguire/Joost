@@ -318,8 +318,8 @@ template<
   //template< typename K, typename V > class MapType
 >
 class MapGraph {
-using NodePtr = std::shared_ptr< NodeType >;
-using EdgePtr = std::shared_ptr< EdgeType >;
+using NodePtr = std::unique_ptr< NodeType >;
+using EdgePtr = std::unique_ptr< EdgeType >;
 using NodeIDPair = std::pair< node_id_int, node_id_int >;
 
 using GraphType = MapGraph< NodeType, EdgeType >;
@@ -331,7 +331,7 @@ public:
   ){
     for( int i = 0; i < num_nodes; ++i ){
       node_id_int const index = first_node_index + i;
-      nodes_[ index ] = std::make_shared< NodeType >( index );
+      nodes_[ index ] = std::make_unique< NodeType >( index );
     }
   }
 
@@ -346,24 +346,26 @@ public:
       pair.second = node1;
     }
     
-    auto iter = edges_[ pair ];
-    EdgePtr & ptr = * iter;
-    ptr = std::make_shared< EdgeType >();
+    auto & iter = edges_[ pair ];
+    EdgePtr & ptr = iter;
+    ptr = std::make_unique< EdgeType >();
 
     {
-      auto first_node_iter = nodes_[ pair.first ];
+      //auto & first_node_iter = nodes_[ pair.first ];
+      auto first_node_iter = nodes_.find( pair.first );
       debug_assert( first_node_iter != nodes_.end() );
-      NodeType * first_node = * first_node_iter;
+      NodeType * first_node = & * first_node_iter->second;
       ptr->set_first_node( first_node );
-      first_node->register_new_edge( pair.second, ptr );
+      first_node->register_new_edge( pair.second, & * ptr );
     }
 
     {
-      auto second_node_iter = nodes_[ pair.second ];
+      //auto & second_node_iter = nodes_[ pair.second ];
+      auto second_node_iter = nodes_.find( pair.second );
       debug_assert( second_node_iter != nodes_.end() );
-      NodeType * second_node = * second_node_iter;
+      NodeType * second_node = & * second_node_iter->second;
       ptr->set_second_node( second_node );
-      second_node->register_new_edge( pair.first, ptr );
+      second_node->register_new_edge( pair.first, & * ptr );
     }
   }
 
@@ -380,7 +382,7 @@ public:
 
   void add_node( node_id_int node_id ){
     debug_assert( nodes_.at( node_id ) == nodes_.end() );
-    nodes_[ node_id ] = std::make_shared< NodeType >( node_id );
+    nodes_[ node_id ] = std::make_unique< NodeType >( node_id );
   }
 
   unsigned int num_nodes() const {

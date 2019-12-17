@@ -318,8 +318,8 @@ template<
   //template< typename K, typename V > class MapType
 >
 class MapGraph {
-using NodePtr = std::unique_ptr< NodeType >;
-using EdgePtr = std::unique_ptr< EdgeType >;
+using NodePtr = std::shared_ptr< NodeType >;
+using EdgePtr = std::shared_ptr< EdgeType >;
 using NodeIDPair = std::pair< node_id_int, node_id_int >;
 
 using GraphType = MapGraph< NodeType, EdgeType >;
@@ -331,7 +331,7 @@ public:
   ){
     for( int i = 0; i < num_nodes; ++i ){
       node_id_int const index = first_node_index + i;
-      nodes_[ index ] = std::make_unique< NodeType >( index );
+      nodes_[ index ] = std::make_shared< NodeType >( index );
     }
   }
 
@@ -348,7 +348,7 @@ public:
     
     auto iter = edges_[ pair ];
     EdgePtr ptr = * iter;
-    ptr = std::make_unique< EdgeType >();
+    ptr = std::make_shared< EdgeType >();
 
     {
       auto first_node_iter = nodes_[ pair.first ];
@@ -380,7 +380,7 @@ public:
 
   void add_node( node_id_int node_id ){
     debug_assert( nodes_.at( node_id ) == nodes_.end() );
-    nodes_[ node_id ] = std::make_unique< NodeType >( node_id );
+    nodes_[ node_id ] = std::make_shared< NodeType >( node_id );
   }
 
   unsigned int num_nodes() const {

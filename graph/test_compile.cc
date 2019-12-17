@@ -29,7 +29,7 @@ run( N ){
 int main(){
 
   FlatNodeBase< EdgeBase, std::vector > n( node_id_int( 0 ) );
-  //run< MapGraph >( n );
+  run< MapGraph >( n );
   //run< MapGraph, FlatNodeBase >();
   //run< MapGraph, FlatNodeBase< EdgeBase > >();
   //run< MapGraph, FlatNodeBase< EdgeBase, std::vector > >();

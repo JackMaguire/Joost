@@ -1,6 +1,8 @@
 #include <memory>
 #include <cassert>
 #include <map>
+#include <vector>
+#include <algorithm>
 
 //Saving me refactoring time later
 #define debug_assert assert
@@ -86,10 +88,10 @@ private:
 };
 
 //TODO map-based concept
-template< template< typename Key, typename Value > class MapType = std::map >
+template< typename EdgeType = EdgeBase, template< typename Key, typename Value > class MapType = std::map >
 class MapNodeBase : public NodeBase {
 
-using NodeType = MapNodeBase< MapType >;
+using NodeType = MapNodeBase< EdgeType, MapType >;
 
 public:
   MapNodeBase( node_id_int id ) :
@@ -116,13 +118,11 @@ public:
     return ptr;
   }
 
-  template< typename EdgeType >
   EdgeType *
   get_edge( node_id_int other_node_id ){
     return std::dynamic_pointer_cast< EdgeType >( get_edgebase( other_node_id ) );
   }
 
-  template< typename EdgeType >
   EdgeType const *
   get_edge( node_id_int other_node_id ) const {
     return std::dynamic_pointer_cast< EdgeType >( get_edgebase( other_node_id ) );
@@ -198,7 +198,7 @@ public: //Edge iteration
     }
 
     NodeType * node_;
-    EdgeMapType::iterator iter_;
+    typename EdgeMapType::iterator iter_;
 
     //This ctor is only used to contruct a dummy end()
     //Using bool so I don't break the rule of zero
@@ -210,10 +210,10 @@ public: //Edge iteration
   friend class UpperEdgeIterator;
 };
 
-template< template< typename T > class ContainerType >
+template< typename EdgeType = EdgeBase, template< typename T > class ContainerType = std::vector >
 class FlatNodeBase : public NodeBase {
 
-using NodeType = FlatNodeBase< ContainerType >;
+using NodeType = FlatNodeBase< EdgeType, ContainerType >;
 
 public:
   FlatNodeBase( node_id_int id ) :
@@ -240,13 +240,11 @@ public:
     return ptr;
   }
 
-  template< typename EdgeType >
   EdgeType *
   get_edge( node_id_int other_node_id ){
     return std::dynamic_pointer_cast< EdgeType >( get_edgebase( other_node_id ) );
   }
 
-  template< typename EdgeType >
   EdgeType const *
   get_edge( node_id_int other_node_id ) const {
     return std::dynamic_pointer_cast< EdgeType >( get_edgebase( other_node_id ) );
@@ -306,7 +304,7 @@ public: //Edge iteration
     }
 
     NodeType * node_;
-    EdgeContainerType::iterator iter_;
+    typename EdgeContainerType::iterator iter_;
   };
   friend class UpperEdgeIterator;
 
@@ -319,15 +317,15 @@ template<
   typename EdgeType
   //template< typename K, typename V > class MapType
 >
-class Graph {
+class MapGraph {
 using NodePtr = std::unique_ptr< NodeType >;
 using EdgePtr = std::unique_ptr< EdgeType >;
 using NodeIDPair = std::pair< node_id_int, node_id_int >;
 
-using GraphType = Graph< NodeType, EdgeType >;
+using GraphType = MapGraph< NodeType, EdgeType >;
 
 public:
-  Graph(
+  MapGraph(
     int num_nodes,
     node_id_int first_node_index = 0
   ){
@@ -382,7 +380,7 @@ public:
 
   void add_node( node_id_int node_id ){
     debug_assert( nodes_.at( node_id ) == nodes_.end() );
-    nodes_[ index ] = std::make_unique< NodeType >( node_id );
+    nodes_[ node_id ] = std::make_unique< NodeType >( node_id );
   }
 
   unsigned int num_nodes() const {
@@ -494,13 +492,13 @@ public:
 
   private:
     GraphType * graph_;
-    NodeMapType::iterator current_node_;
-    NodeType::UpperEdgeIterator current_edge_;
+    typename NodeMapType::iterator current_node_;
+    typename NodeType::UpperEdgeIterator current_edge_;
     
     //This ctor is only used to contruct a dummy end()
     //Using bool so I don't break the rule of zero
     EdgeIterator( bool ) :
-      current_node_ = NodeType::UpperEdgeIterator::end();
+      current_node_( NodeType::UpperEdgeIterator::end() )
     {}
 
   };

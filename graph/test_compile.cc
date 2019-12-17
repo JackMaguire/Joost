@@ -10,9 +10,8 @@
 using namespace joost::graph;
 
 template< template< typename N, typename E > class G, typename N, typename E = EdgeBase >
-//template< template< typename N, typename E > class G, template<class EdgeType, template<class T> class ContaierType> class N, typename E = EdgeBase >
 void
-run(){
+run( N ){
   constexpr int NODECOUNT = 10;
   G< N, E > g( NODECOUNT );
 
@@ -29,8 +28,11 @@ run(){
 
 int main(){
 
+  FlatNodeBase< EdgeBase, std::vector > n( node_id_int( 0 ) );
+  //run< MapGraph >( n );
   //run< MapGraph, FlatNodeBase >();
-  run< MapGraph, FlatNodeBase< EdgeBase, std::vector > >();
+  //run< MapGraph, FlatNodeBase< EdgeBase > >();
+  //run< MapGraph, FlatNodeBase< EdgeBase, std::vector > >();
   //run< Graph, FlatNodeBase< std::list > >();
   //run< Graph, MapNodeBase< std::map > >();
   //run< Graph, MapNodeBase< std::unordered_map > >();

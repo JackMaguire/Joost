@@ -81,7 +81,7 @@ public:
   template< class Forecaster >
   void
   initialize( StateType const incoming_state, unsigned int const move ){
-    //assumes static void forecast( StateType const incoming_state, unsigned int const move, StateType &, OutcomeType & )
+    //assumes static void forecast( StateType const & incoming_state, unsigned int const move, StateType &, OutcomeType & )
     Forecaster::forecast( incoming_state, move, outgoing_state_, outcome_ );
     has_been_initialized_ = true;
   }

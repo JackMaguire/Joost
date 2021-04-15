@@ -5,14 +5,39 @@
 
 namespace joost {
 
-
-
 // classes and enums
 
 class DDFRNode;
+class DDFRCache;
 
 template< class StateType, class OutcomeType, unsigned int N_POSSIBLE_MOVES >
 using DDFRNodePtr = std::unique_ptr< DDFRNode< class StateType, class OutcomeType, N_POSSIBLE_MOVES > >;
+
+template< unsigned int N_POSSIBLE_MOVES >
+struct RecursionOutcome {
+  std::array< int, N_POSSIBLE_MOVES > moves;
+  bool found_solution = false;
+
+  RecursionOutcome(){
+    moves.fill( -1 );
+  }
+
+};
+
+template< unsigned int N_POSSIBLE_MOVES >
+struct GrowingArray {
+  std::array< int, N_POSSIBLE_MOVES > data;
+  unsigned int next_index = 0;
+
+  GrowingArray(){
+    data.fill( -1 );
+  }
+
+  void push_back( unsigned int const value ){
+    data[ next_index ] = value;
+    ++next_index;
+  }
+};
 
 enum class NodeType {
   UNINITIALIZED = 0,
@@ -24,6 +49,8 @@ enum class NodeType {
 template< class StateType, class OutcomeType, unsigned int N_POSSIBLE_MOVES >
 class DDFRNode {
   using NodePtr_t = DDFRNodePtr< StateType, OutcomeType, N_POSSIBLE_MOVES >;
+
+  friend class DDFRCache;
 
 private:
   //DATA
@@ -65,6 +92,16 @@ sample_to_depth(
 }
 }*/
 
+struct NeverStopEarly {
+
+  template< class OutcomeType >
+  static
+  bool
+  stop(){
+    return false;
+  }
+
+};
 
 template< class StateType, class OutcomeType, unsigned int N_POSSIBLE_MOVES >
 class DDFRCache {
@@ -92,17 +129,43 @@ public:
     current_state_ = state;
   }
 
-  template< class Forecaster >
-  void
+  template< class Forecaster, class StopEarlyFailure = NeverStopEarly, class StopEarlySuccess = NeverStopEarly,  >
+  RecursionOutcome< N_POSSIBLE_MOVES >
   sample_to_depth( unsigned int const depth ){
+
+    using RecOutcome = RecursionOutcome< N_POSSIBLE_MOVES >;
+
+    RecOutcome best_outcome;
+    
+    GrowingArray moves;
+
     for( unsigned int i = 0; i < data_.size(); ++i ){
       if( data_[ i ] == nullptr ){
 	data_[ i ] = std::make_unique< DDFRNode >();
 	data_[ i ]->initialize< Forecaster >( i );
       }
 
+      OutcomeType const & outcome = data_[ i ]->outcome_;
+
+      if( StopEarlyFailure::stop( outcome ) ){
+	continue;
+      }
+
+      if( StopEarlySuccess::stop( outcome ) ){
+	moves.push_back( i );
+	RecOutcome result;
+	result.moves = moves.data;
+	result.found_solution = true;
+	return result;
+      }
+
+      GrowingArray moves_copy = moves;
+      moves_copy.push_back( i );
+
       data_[ i ]->sample_to_depth( depth - 1 );
     }
+
+    return outcome;
   }
 
 };

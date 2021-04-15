@@ -213,6 +213,10 @@ class DDFRCache {
   bool initial_state_has_been_set_ = false;
 
 public:
+  DDFRCache( StateType const & state ):
+    current_state_( state )
+  {}
+
   void
   set_state( StateType const & state ){
     current_state_ = state;

@@ -91,7 +91,7 @@ public:
 	    class StopEarlyFailure = NeverStopEarly,
 	    class StopEarlySuccess = NeverStopEarly >
   RecursionSolution< N_POSSIBLE_MOVES >
-  sample_to_depth(
+  sample_to_depth_static(
     unsigned int const depth,
     GrowingArray< N_POSSIBLE_MOVES > const & moves
   ){
@@ -124,9 +124,13 @@ public:
 	result.outcome = & data_[ i ]->outcome_;
 	return result;
       }
-      
+     
       RecSolution const rec_solution =
-	data_[ i ]->sample_to_depth( depth - 1 );
+	data_[ i ]->sample_to_depth_static<
+	  Forecaster,
+	OutcomeRanker,
+	StopEarlyFailure,
+	StopEarlySuccess >( depth - 1, moves_copy );
 
       if( OutcomeRanker::first_is_better( rec_solution, best_solution ) ){
 	//relatively affordable copy
@@ -137,6 +141,65 @@ public:
     
     return best_solution;
   }  
+
+  template< class Forecaster,
+	    class OutcomeRanker,
+	    class StopEarlyFailure = NeverStopEarly,
+	    class StopEarlySuccess = NeverStopEarly >
+  RecursionSolution< N_POSSIBLE_MOVES >
+  sample_to_depth_dynamic(
+    unsigned int const depth,
+    StopEarlyFailure const & sef,
+    StopEarlySuccess const & ses,
+    GrowingArray< N_POSSIBLE_MOVES > const & moves
+  ){
+    if( depth == 0 ) return;
+
+    using RecSolution = RecursionSolution< N_POSSIBLE_MOVES >;
+    
+    RecSolution best_solution;
+
+    for( unsigned int i = 0; i < N_POSSIBLE_MOVES; ++i ){
+      if( data_[ i ] == nullptr ){
+	data_[ i ] = std::make_unique< DDFRNode >();
+	data_[ i ]->initialize<Forecaster>(outgoing_state_, i);
+      } else {
+	assert( data_[ i ]->has_been_initialized_ );
+      }
+
+      OutcomeType const & outcome = data_[ i ]->outcome_;
+
+      if( StopEarlyFailure::stop( outcome ) ){
+	continue;
+      }
+
+      GrowingArray< N_POSSIBLE_MOVES > moves_copy = moves;
+      moves_copy.push_back( i );
+
+      if( StopEarlySuccess::stop( outcome ) ){
+	RecSolution result;
+	result.moves = moves_copy;
+	result.outcome = & data_[ i ]->outcome_;
+	return result;
+      }
+     
+      RecSolution const rec_solution =
+	data_[ i ]->sample_to_depth_dynamic<
+	  Forecaster,
+	OutcomeRanker,
+	StopEarlyFailure,
+	StopEarlySuccess >( depth - 1, sef, ses, moves_copy );
+
+      if( OutcomeRanker::first_is_better( rec_solution, best_solution ) ){
+	//relatively affordable copy
+	best_solution = rec_solution;
+      }
+
+    }
+    
+    return best_solution;
+  }  
+
 };
 
 template< class StateType, class OutcomeType,
@@ -157,13 +220,6 @@ public:
   }
 
   void
-  register_move( unsigned int const move ){
-    assert( data_[ move ] != nullptr );
-    //assert( data_[ move ].node_type != NodeType::UNINITIALIZED );
-    data_ = std::move( data_[ move ].data );
-  }
-
-  void
   clear(){
     data_.fill( nullptr );
     initial_state_has_been_set_ = false;
@@ -175,12 +231,19 @@ public:
     current_state_ = state;
   }
 
+  void
+  register_move( unsigned int const move ){
+    assert( data_[ move ] != nullptr );
+    data_ = std::move( data_[ move ]->data );
+    current_state_ = data_[ move ]->outgoing_state_;
+  }
+
   template< class Forecaster,
 	    class OutcomeRanker,
 	    class StopEarlyFailure = NeverStopEarly,
 	    class StopEarlySuccess = NeverStopEarly >
   RecursionSolution< N_POSSIBLE_MOVES >
-  sample_to_depth( unsigned int const depth ){
+  sample_to_depth_static( unsigned int const depth ){
 
     assert( initial_state_has_been_set_ );
 
@@ -216,7 +279,11 @@ public:
       moves_copy.push_back( i );
 
       RecSolution const rec_solution =
-	data_[ i ]->sample_to_depth( depth - 1 );
+	data_[ i ]->sample_to_depth_static<
+	  Forecaster,
+	OutcomeRanker,
+	StopEarlyFailure,
+	StopEarlySuccess >( depth - 1 );
 
       if( OutcomeRanker::first_is_better( rec_solution, best_solution ) ){
 	//relatively affordable copy
@@ -227,6 +294,68 @@ public:
 
     return best_solution;
   }
+
+  template< class Forecaster,
+	    class OutcomeRanker,
+	    class StopEarlyFailure,
+	    class StopEarlySuccess >
+  RecursionSolution< N_POSSIBLE_MOVES >
+  sample_to_depth_dynamic(
+    unsigned int const depth,
+    StopEarlyFailure const & sef,
+    StopEarlySuccess const & ses
+  ){
+
+    assert( initial_state_has_been_set_ );
+
+    using RecSolution = RecursionSolution< N_POSSIBLE_MOVES >;
+
+    RecSolution best_solution;
+
+    GrowingArray< N_POSSIBLE_MOVES > moves;
+
+    for( unsigned int i = 0; i < N_POSSIBLE_MOVES; ++i ){
+      if( data_[ i ] == nullptr ){
+	data_[ i ] = std::make_unique< DDFRNode >();
+	data_[ i ]->initialize< Forecaster >(current_state_, i);
+      } else {
+	assert( data_[ i ]->has_been_initialized_ );
+      }
+
+      OutcomeType const & outcome = data_[ i ]->outcome_;
+
+      if( sef.stop( outcome ) ){
+	continue;
+      }
+
+      if( ses.stop( outcome ) ){
+	moves.push_back( i );
+	RecSolution result;
+	result.moves = moves.data;
+	result.outcome = & data_[ i ]->outcome_;
+	return result;
+      }
+
+      GrowingArray< N_POSSIBLE_MOVES > moves_copy = moves;
+      moves_copy.push_back( i );
+
+      RecSolution const rec_solution =
+	data_[ i ]->sample_to_depth_dynamic<
+	  Forecaster,
+	OutcomeRanker,
+	StopEarlyFailure,
+	StopEarlySuccess >( depth - 1, sef, ses, moves_copy );
+
+      if( OutcomeRanker::first_is_better( rec_solution, best_solution ) ){
+	//relatively affordable copy
+	best_solution = rec_solution;
+      }
+
+    }
+
+    return best_solution;
+  }
+
 
 };
 

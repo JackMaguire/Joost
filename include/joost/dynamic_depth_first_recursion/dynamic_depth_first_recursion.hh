@@ -5,6 +5,8 @@
 
 namespace joost {
 
+
+
 // classes and enums
 
 class DDFRNode;
@@ -21,10 +23,12 @@ enum class NodeType {
 
 template< class StateType, class OutcomeType, unsigned int N_POSSIBLE_MOVES >
 class DDFRNode {
+  using NodePtr_t = DDFRNodePtr< StateType, OutcomeType, N_POSSIBLE_MOVES >;
+
 private:
   //DATA
 
-  std::array< DDFRNodePtr, N_POSSIBLE_MOVES > data_;
+  std::array< NodePtr_t, N_POSSIBLE_MOVES > data_;
   StateType outgoing_state_;
   OutcomeType outcome_;
 
@@ -37,17 +41,43 @@ public:
   //METHODS
   template< class Forecaster >
   void
-  run_forecast( StateType const incoming_state, unsigned int const move ){
+  initialize( StateType const incoming_state, unsigned int const move ){
+    //assumes static void forecast( StateType const incoming_state, unsigned int const move, StateType &, OutcomeType & )
     Forecaster::forecast( incoming_state, move, outgoing_state_, outcome_ );
   }
 };
 
+/*namespace {
+template< unsigned int N_POSSIBLE_MOVES, class Forecaster >
+void
+sample_to_depth(
+  std::array< DDFRNodePtr, N_POSSIBLE_MOVES > & data
+  unsigned int const depth
+){
+  for( unsigned int i = 0; i < data_.size(); ++i ){
+    if( data_[ i ] == nullptr ){
+      data_[ i ] = std::make_unique< DDFRNode >();
+      data_[ i ]->initialize< Forecaster >( i );
+    }
+    
+    //data_[ i ]->
+  }
+}
+}*/
+
+
 template< class StateType, class OutcomeType, unsigned int N_POSSIBLE_MOVES >
 class DDFRCache {
-  std::array< DDFRNodePtr, N_POSSIBLE_MOVES > data_;
+  using NodePtr_t = DDFRNodePtr< StateType, OutcomeType, N_POSSIBLE_MOVES >;
+
+  std::array< NodePtr_t, N_POSSIBLE_MOVES > data_;
   StateType current_state_;
 
 public:
+  void
+  set_state( StateType const & state ){
+    current_state_ = state;
+  }
 
   void
   register_move( unsigned int const move ){
@@ -68,10 +98,10 @@ public:
     for( unsigned int i = 0; i < data_.size(); ++i ){
       if( data_[ i ] == nullptr ){
 	data_[ i ] = std::make_unique< DDFRNode >();
-	data_[ i ]->run_forecast< Forecaster >( i );
+	data_[ i ]->initialize< Forecaster >( i );
       }
 
-      data_[ i ]->
+      data_[ i ]->sample_to_depth( depth - 1 );
     }
   }
 
